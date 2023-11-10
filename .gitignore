@@ -1,0 +1,6 @@
+# build
+cryptid-weather
+build/
+
+# secret
+.env
