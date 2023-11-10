@@ -36,22 +36,22 @@ func main() {
 
 	// Create client
 	opts := mqtt.NewClientOptions()
-	opts.AddBroker("tcp://172.16.0.131:1883")
+	opts.AddBroker("tcp://cryptid:public@172.16.0.131:1883")
 	opts.SetClientID("cryptidWeather")
 	opts.SetKeepAlive(60 * time.Second)
 	opts.SetDefaultPublishHandler(messageHandler)
 	opts.SetPingTimeout(1 * time.Second)
 
 	// Connect
-	c := mqtt.NewClient(opts)
-	if token := c.Connect(); token.Wait() && token.Error() != nil {
+	mqttClient := mqtt.NewClient(opts)
+	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatal(token.Error())
 	}
 
 	// Updates
 	go func() {
 		for range time.Tick(time.Second * FETCH_INTERVAL) {
-			weatherUpdate()
+			weatherUpdate(&mqttClient)
 		}
 	}()
 
@@ -60,7 +60,7 @@ func main() {
 
 	// Cleanup
 	println("Closing...")
-	c.Disconnect(250)
+	mqttClient.Disconnect(250)
 	println("Cryptid Weather Closed")
 }
 
@@ -69,13 +69,13 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 	fmt.Printf("MSG: %s\n", msg.Payload())
 }
 
-func weatherUpdate() {
+func weatherUpdate(mqttClient *mqtt.Client) {
 	weather, err := getCurrentWeather()
 	if err != nil {
 		println("Error fetching weather.", err.Error())
 		return
 	}
-	println("temp_c", weather.TempC)
-	// token := c.Publish("go-mqtt/sample", 0, false, text)
-	// token.Wait()
+	temp_c := fmt.Sprintf("%.4f", weather.TempC)
+	token := (*mqttClient).Publish("weather/temperature", 0, false, temp_c)
+	token.Wait()
 }
