@@ -59,7 +59,7 @@ func main() {
 	<-done
 
 	// Cleanup
-	println("Closing...")
+	println("\nClosing...")
 	mqttClient.Disconnect(250)
 	println("Cryptid Weather Closed")
 }
@@ -75,7 +75,14 @@ func weatherUpdate(mqttClient *mqtt.Client) {
 		println("Error fetching weather.", err.Error())
 		return
 	}
+
 	temp_c := fmt.Sprintf("%.4f", weather.TempC)
-	token := (*mqttClient).Publish("weather/temperature", 0, false, temp_c)
-	token.Wait()
+	feelslike := fmt.Sprintf("%.4f", weather.FeelsLikeC)
+	humidity := fmt.Sprint(weather.Humidity)
+
+	wait := time.Second * 10
+	_ = (*mqttClient).Publish("weather/temperature", 0, false, temp_c).WaitTimeout(wait)
+	_ = (*mqttClient).Publish("weather/feelslike", 0, false, feelslike).WaitTimeout(wait)
+	_ = (*mqttClient).Publish("weather/humidity", 0, false, humidity).WaitTimeout(wait)
+	_ = (*mqttClient).Publish("weather/condition", 0, false, weather.Code).WaitTimeout(wait)
 }

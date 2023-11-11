@@ -9,14 +9,27 @@ import (
 )
 
 type WeatherData struct {
-	TempC float32
+	TempC      float32
+	FeelsLikeC float32
+	Humidity   uint8
+	Code       string
 }
 
 func getCurrentWeather() (*WeatherData, error) {
-	return getWeather("current")
+	resp, err := getWeather("current")
+	if err != nil {
+		return nil, err
+	}
+	// Adapt
+	return &WeatherData{
+		TempC:      resp.Current.TempC,
+		FeelsLikeC: resp.Current.FeelsLikeC,
+		Humidity:   resp.Current.Humidity,
+		Code:       getStringFromWeatherCode(resp.Current.Condition.Code),
+	}, nil
 }
 
-func getWeather(endpoint string) (*WeatherData, error) {
+func getWeather(endpoint string) (*weatherResponse, error) {
 	// Fetch
 	latlng := os.Getenv("WEATHER_API_LAT") + "," + os.Getenv("WEATHER_API_LNG")
 	query := "?key=" + os.Getenv("WEATHER_API_KEY") + "&q=" + latlng
@@ -32,15 +45,12 @@ func getWeather(endpoint string) (*WeatherData, error) {
 	if err != nil {
 		return nil, err
 	}
-	println(string(body))
 	// Parse
 	var data weatherResponse
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err
 	}
-	// Adapt
-	return &WeatherData{
-		TempC: data.Current.TempC,
-	}, nil
+
+	return &data, nil
 }
