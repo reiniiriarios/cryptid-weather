@@ -12,7 +12,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const FETCH_INTERVAL = 20
+const FETCH_INTERVAL = 60
 
 func main() {
 	// Create signals channel to run server until interrupted
@@ -24,7 +24,10 @@ func main() {
 		done <- true
 	}()
 
+	plog("Starting...")
+
 	// Get config
+	plog("Reading config...")
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Error loading .env: %s", err)
@@ -35,6 +38,7 @@ func main() {
 	mqtt.ERROR = log.New(os.Stdout, "", 0)
 
 	// Create client
+	plog("Creating client...")
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker("tcp://cryptid:public@172.16.0.131:1883")
 	opts.SetClientID("cryptidWeather")
@@ -51,7 +55,7 @@ func main() {
 	// Updates
 	go func() {
 		for range time.Tick(time.Second * FETCH_INTERVAL) {
-			println("Updating weather...")
+			plog("Updating weather...")
 			weatherUpdate(&mqttClient)
 		}
 	}()
@@ -60,9 +64,10 @@ func main() {
 	<-done
 
 	// Cleanup
-	println("\nClosing...")
+	println()
+	plog("Closing...")
 	mqttClient.Disconnect(250)
-	println("Cryptid Weather Closed")
+	plog("Cryptid Weather Closed")
 }
 
 func messageHandler(client mqtt.Client, msg mqtt.Message) {
@@ -73,10 +78,11 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 func weatherUpdate(mqttClient *mqtt.Client) {
 	weather, err := getCurrentWeather()
 	if err != nil {
-		println("Error fetching weather.", err.Error())
+		plog("Error fetching weather.")
+		plog(err.Error())
 		return
 	}
-	fmt.Printf("%v\n", weather)
+	plog(weather)
 
 	// Stringify all data!
 	temp_c := fmt.Sprintf("%.4f", weather.TempC)
@@ -84,26 +90,19 @@ func weatherUpdate(mqttClient *mqtt.Client) {
 	humidity := fmt.Sprint(weather.Humidity)
 	code := fmt.Sprint(weather.Code)
 
-	wait := time.Second * 10
-	var t mqtt.Token
-	t = (*mqttClient).Publish("weather/temperature", 0, false, temp_c)
-	if !t.WaitTimeout(wait) {
-		println(t.Error().Error())
+	// Publish individually.
+	publish(mqttClient, "weather/temperature", temp_c)
+	publish(mqttClient, "weather/feelslike", feelslike)
+	publish(mqttClient, "weather/humidity", humidity)
+	publish(mqttClient, "weather/condition", weather.Condition)
+	publish(mqttClient, "weather/code", code)
+}
+
+func publish(c *mqtt.Client, topic string, payload string) error {
+	t := (*c).Publish("weather/temperature", 0, false, payload)
+	if !t.WaitTimeout(time.Second * 10) {
+		plog(t.Error().Error())
+		return t.Error()
 	}
-	t = (*mqttClient).Publish("weather/feelslike", 0, false, feelslike)
-	if !t.WaitTimeout(wait) {
-		println(t.Error().Error())
-	}
-	t = (*mqttClient).Publish("weather/humidity", 0, false, humidity)
-	if !t.WaitTimeout(wait) {
-		println(t.Error().Error())
-	}
-	t = (*mqttClient).Publish("weather/condition", 0, false, weather.Condition)
-	if !t.WaitTimeout(wait) {
-		println(t.Error().Error())
-	}
-	t = (*mqttClient).Publish("weather/code", 0, false, code)
-	if !t.WaitTimeout(wait) {
-		println(t.Error().Error())
-	}
+	return nil
 }
