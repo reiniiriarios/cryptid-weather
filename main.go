@@ -89,6 +89,10 @@ func weatherUpdate(mqttClient *mqtt.Client) {
 	feelslike := fmt.Sprintf("%.4f", weather.FeelsLikeC)
 	humidity := fmt.Sprint(weather.Humidity)
 	code := fmt.Sprint(weather.Code)
+	is_day := "1"
+	if !weather.IsDay {
+		is_day = "0"
+	}
 
 	// Publish individually.
 	publish(mqttClient, "weather/temperature", temp_c)
@@ -96,6 +100,7 @@ func weatherUpdate(mqttClient *mqtt.Client) {
 	publish(mqttClient, "weather/humidity", humidity)
 	publish(mqttClient, "weather/condition", weather.Condition)
 	publish(mqttClient, "weather/code", code)
+	publish(mqttClient, "weather/isday", is_day)
 }
 
 func publish(c *mqtt.Client, topic string, payload string) error {

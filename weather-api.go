@@ -14,6 +14,7 @@ type WeatherData struct {
 	Humidity   uint8
 	Condition  string
 	Code       uint16
+	IsDay      bool
 }
 
 func getCurrentWeather() (*WeatherData, error) {
@@ -28,6 +29,7 @@ func getCurrentWeather() (*WeatherData, error) {
 		Humidity:   resp.Current.Humidity,
 		Condition:  getStringFromWeatherCode(resp.Current.Condition.Code),
 		Code:       resp.Current.Condition.Code,
+		IsDay:      resp.Current.IsDay == 1,
 	}, nil
 }
 
