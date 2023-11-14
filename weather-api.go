@@ -12,7 +12,8 @@ type WeatherData struct {
 	TempC      float32
 	FeelsLikeC float32
 	Humidity   uint8
-	Code       string
+	Condition  string
+	Code       uint16
 }
 
 func getCurrentWeather() (*WeatherData, error) {
@@ -25,7 +26,8 @@ func getCurrentWeather() (*WeatherData, error) {
 		TempC:      resp.Current.TempC,
 		FeelsLikeC: resp.Current.FeelsLikeC,
 		Humidity:   resp.Current.Humidity,
-		Code:       getStringFromWeatherCode(resp.Current.Condition.Code),
+		Condition:  getStringFromWeatherCode(resp.Current.Condition.Code),
+		Code:       resp.Current.Condition.Code,
 	}, nil
 }
 

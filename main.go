@@ -12,7 +12,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const FETCH_INTERVAL = 10
+const FETCH_INTERVAL = 20
 
 func main() {
 	// Create signals channel to run server until interrupted
@@ -51,6 +51,7 @@ func main() {
 	// Updates
 	go func() {
 		for range time.Tick(time.Second * FETCH_INTERVAL) {
+			println("Updating weather...")
 			weatherUpdate(&mqttClient)
 		}
 	}()
@@ -75,14 +76,34 @@ func weatherUpdate(mqttClient *mqtt.Client) {
 		println("Error fetching weather.", err.Error())
 		return
 	}
+	fmt.Printf("%v\n", weather)
 
+	// Stringify all data!
 	temp_c := fmt.Sprintf("%.4f", weather.TempC)
 	feelslike := fmt.Sprintf("%.4f", weather.FeelsLikeC)
 	humidity := fmt.Sprint(weather.Humidity)
+	code := fmt.Sprint(weather.Code)
 
 	wait := time.Second * 10
-	_ = (*mqttClient).Publish("weather/temperature", 0, false, temp_c).WaitTimeout(wait)
-	_ = (*mqttClient).Publish("weather/feelslike", 0, false, feelslike).WaitTimeout(wait)
-	_ = (*mqttClient).Publish("weather/humidity", 0, false, humidity).WaitTimeout(wait)
-	_ = (*mqttClient).Publish("weather/condition", 0, false, weather.Code).WaitTimeout(wait)
+	var t mqtt.Token
+	t = (*mqttClient).Publish("weather/temperature", 0, false, temp_c)
+	if !t.WaitTimeout(wait) {
+		println(t.Error().Error())
+	}
+	t = (*mqttClient).Publish("weather/feelslike", 0, false, feelslike)
+	if !t.WaitTimeout(wait) {
+		println(t.Error().Error())
+	}
+	t = (*mqttClient).Publish("weather/humidity", 0, false, humidity)
+	if !t.WaitTimeout(wait) {
+		println(t.Error().Error())
+	}
+	t = (*mqttClient).Publish("weather/condition", 0, false, weather.Condition)
+	if !t.WaitTimeout(wait) {
+		println(t.Error().Error())
+	}
+	t = (*mqttClient).Publish("weather/code", 0, false, code)
+	if !t.WaitTimeout(wait) {
+		println(t.Error().Error())
+	}
 }

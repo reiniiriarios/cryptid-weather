@@ -42,6 +42,7 @@ type currentWeatherResponse struct {
 	GustKph    float32 `json:"gust_kph"`
 }
 
+// https://www.weatherapi.com/docs/weather_conditions.json
 var weatherCodes = map[uint16]string{
 	1000: "clear",
 	1003: "partly_cloudy",
