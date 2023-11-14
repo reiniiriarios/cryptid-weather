@@ -99,7 +99,7 @@ func weatherUpdate(mqttClient *mqtt.Client) {
 }
 
 func publish(c *mqtt.Client, topic string, payload string) error {
-	t := (*c).Publish("weather/temperature", 0, false, payload)
+	t := (*c).Publish(topic, 0, false, payload)
 	if !t.WaitTimeout(time.Second * 10) {
 		plog(t.Error().Error())
 		return t.Error()
